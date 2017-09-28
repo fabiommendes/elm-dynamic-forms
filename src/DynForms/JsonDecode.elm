@@ -1,22 +1,32 @@
-module DynForms.JsonDecode exposing (decodeString, decodeValue)
+module DynForms.JsonDecode
+    exposing
+        ( decodeString
+        , decodeValue
+        , fieldInfoDecoder
+        , formDecoder
+        , layoutDecoder
+        , validatorDecoder
+        )
 
-{-| Functions that decode a JSON string to a form object.
-
-@docs decodeForm
+{-| Functions used to decode a JSON string or Value to a form object.
 
 
-# Additional encoders
+# Decode functions
+
+@docs decodeValue, decodeString
+
+
+# Decoders
+
+@docs formDecoder, layoutDecoder, fieldInfoDecoder, validatorDecoder
 
 -}
 
-import Dict exposing (Dict)
 import DynForms exposing (..)
 import DynForms.Data exposing (..)
 import DynForms.Field exposing (..)
 import DynForms.State exposing (..)
 import DynForms.Util as Util
-import DynForms.Validation exposing (..)
-import Form
 import Json.Decode as Dec exposing (..)
 
 
@@ -38,6 +48,8 @@ decodeString st =
 --- DECODERS -------------------------------------------------------------------
 
 
+{-| Decodes JSON to a form object
+-}
 formDecoder : Decoder Form
 formDecoder =
     let
@@ -61,7 +73,7 @@ formDecoder =
         (oneOf [ field "ajax" bool, succeed True ])
         (field "fields" fieldListDecoder)
         (field "layout" layoutDecoder)
-        (field "state" stateDecoder)
+        (field "data" stateDecoder)
 
 
 fieldListDecoder : Decoder (List FieldInfo)
@@ -74,6 +86,8 @@ fieldListDecoder =
         |> andThen (\lst -> succeed (List.map transferId lst))
 
 
+{-| Decodes JSON to a layout object
+-}
 layoutDecoder : Decoder FormLayout
 layoutDecoder =
     let
@@ -121,6 +135,8 @@ stateDecoder =
 --- VALIDATORS -----------------------------------------------------------------
 
 
+{-| Decodes JSON to a (validator, errorString) tuple
+-}
 validatorDecoder : Decoder ( Validator, String )
 validatorDecoder =
     let
@@ -207,6 +223,8 @@ validateValidator constructor err arg =
 --- VALIDATORS -----------------------------------------------------------------
 
 
+{-| Decodes JSON to a FieldInfo object.
+-}
 fieldInfoDecoder : Decoder FieldInfo
 fieldInfoDecoder =
     map7 fieldInfoFactory

@@ -7,49 +7,106 @@ module DynForms
         , Msg(..)
         , Validator(..)
         , form
-        , getFieldDefaultAt
-        , getFieldHelpAt
-        , getFieldInfoAt
+        , getBoolAt
         , getFieldLabelAt
-        , getFieldPlaceholderAt
-        , getFieldTypeAt
         , getFieldValidatorsAt
+        , getFloatAt
+        , getIntAt
+        , getStringAt
+        , tryFieldDefaultAt
+        , tryFieldHelpAt
+        , tryFieldInfoAt
+        , tryFieldPlaceholderAt
+        , tryFieldTypeAt
         , updateForm
         )
 
-{-| Dynamic forms can be created from JSON, using Elm to control user
-interaction and basic validation. Data can be serialized and sent to the
-backend for further validation and persistence.
+{-| Dynamic forms usually start as some JSON sent by the backend. Elm takes control
+to present to render the form, interact with the user and perform basic
+validation. Data can be serialized and sent back to the server for further
+validation and persistence.
+
+If you want to generate a form from JSON, take a look at the
+DynForms.JsonDecode and DynForms.JsonEncode modules. You can also construct
+form objects in Elm. A form is defined by a series of fields and a layout.
+
+    import DynForms exposing (form)
+    import DynForms.Field exposing (..)
+    import DynForms.Validation exposing (..)
+
+    sampleForm : Form
+    sampleForm =
+        form "/api/form/1"
+            [ stringField "name"
+                |> label "Name"
+                |> placeholder "Full name"
+                |> validators [ maxLength 200 ]
+            , intField "age"
+                |> label "Age"
+                |> help "Your age"
+                |> validators [ minValue 0, maxValue 120 ]
+            ]
 
 
-# Types
+# Form creation
 
-@docs Form, FieldType, FormLayout, FieldInfo, Validator, form
+@docs Form, form
 
 
-# Field constructors and helpers
+# Basic data types
+
+The DynForms module also defines a few auxiliary data types.
+
+@docs FieldType, FormLayout, FieldInfo, Validator
+
+
+# Field constructors and introspection
 
 A field is declared using functions in the DynForms.Fields module. This module
-defines a few functions used to extract information for specific fields on a
-form.
+defines a few functions used to construct a field (e.g., label, help,
+placeholder, etc). If you want to instrospect an specific field use one of the
+functions bellow.
 
-@docs getFieldInfoAt, getFieldLabelAt, getFieldDefaultAt, getFieldPlaceholderAt
-@docs getFieldValidatorsAt, getFieldHelpAt, getFieldTypeAt
+The `try*` functions return a Maybe while the `get*` functions return a definite
+value.
+
+@docs tryFieldInfoAt, getFieldLabelAt, tryFieldDefaultAt, tryFieldPlaceholderAt
+@docs tryFieldHelpAt, tryFieldTypeAt, getFieldValidatorsAt
+
+
+# Data access
+
+The content of a field can be retrieved by a few data access functions.
+Notice that those are not type safe functions and you should make sure that you
+always use the right function to access each field.
+
+@docs getStringAt, getBoolAt, getFloatAt, getIntAt
 
 
 # Validators
 
-Field validators are declared in the DynForms.Validators module.
+Each field may define a list of validators that defines additional validation
+routines that are not simply based on the content type (set up a minimum
+value of a number, or the maximum length of a string, etc). Field validators
+are declared in the DynForms.Validation module.
 
 
 # View Functions
 
-View functions are declared in the DynForms.View module.
+View functions are declared in the DynForms.View module. Unless you are trying
+someting fancy, you really should care only about the viewForm() function.
 
 
 # Elm Archtecture
 
+DynForms follows a very standard Elm archtecture. `Form` can be safely used
+inside a model. It also defines the view function on the `DynForms.View`
+module. You should also use `DynForms.Msg` and `DynForms.updateForm` functions.
+
 @docs Msg, updateForm
+
+You may want to check the self-contained example at
+<https://github.com/fabiommendes/elm-dynamic-forms/blob/master/example/Example.elm>
 
 -}
 
@@ -57,7 +114,6 @@ import Dict exposing (Dict)
 import DynForms.Data exposing (..)
 import DynForms.State exposing (..)
 import Form
-import Form.Field
 import Maybe exposing (withDefault)
 
 
@@ -85,10 +141,10 @@ type alias Form =
     }
 
 
-{-| Represents a layout of form elements.
+{-| Represents a layout for the form elements.
 
 The Layout describes how form elements will be placed on the page when creating
-a view.
+a view. Check the `DynForms.Layout` module for more options.
 
 -}
 type FormLayout
@@ -96,7 +152,11 @@ type FormLayout
     | TableLayout (List String)
 
 
-{-| Stores basic information about a field
+{-| Stores basic information about a field.
+
+Use the functions on `DynForms.Field` to create FieldInfo objets unless you
+know what your are doing.
+
 -}
 type alias FieldInfo =
     { id : String
@@ -111,6 +171,9 @@ type alias FieldInfo =
 
 
 {-| Field type.
+
+Enumerate the possible field types.
+
 -}
 type FieldType
     = HiddenField
@@ -121,7 +184,11 @@ type FieldType
     | BoolField
 
 
-{-| Represents a field value validator
+{-| Validator
+
+Describe the possible validation routines. Error strings can be set separately
+from the validator. See `DynForms.Validation` for more options.
+
 -}
 type Validator
     = MinValue Float
@@ -130,13 +197,13 @@ type Validator
     | MaxLength Int
 
 
-{-| Form messages
+{-| The message type.
 -}
 type Msg
     = StateMsg Form.Msg
 
 
-{-| Alias for clarity and type safety
+{-| Alias string for clarity
 -}
 type alias Id =
     String
@@ -146,15 +213,25 @@ type alias Id =
 --- CONSTRUCTORS ---------------------------------------------------------------
 
 
-{-| Creates a new form
+{-| Creates a new form.
+
+You should pass the address to the endpoint that handles the form and a list of
+fields.
+
 -}
 form : String -> List FieldInfo -> Form
 form action info =
     { action = action
     , ajax = False
-    , fields = Dict.fromList <| List.map (\info -> ( info.id, info )) info
-    , layout = LinearLayout <| List.map (\info -> info.id) info
-    , state = Form.initial (getInitial info) (getValidations info)
+    , fields =
+        Dict.fromList <|
+            List.map (\info -> ( info.id, info )) info
+    , layout =
+        LinearLayout <|
+            List.map (\info -> info.id) info
+    , state =
+        initialState <|
+            List.map (\info -> ( info.id, info.dataType, info.default )) info
     }
 
 
@@ -164,16 +241,16 @@ form action info =
 
 {-| Retrive information from a field if it exists
 -}
-getFieldInfoAt : Id -> Form -> Maybe FieldInfo
-getFieldInfoAt id form =
+tryFieldInfoAt : Id -> Form -> Maybe FieldInfo
+tryFieldInfoAt id form =
     Dict.get id form.fields
 
 
 {-| Get field type for field with the given id, if it exists.
 -}
-getFieldTypeAt : Id -> Form -> Maybe FieldType
-getFieldTypeAt id form =
-    getFieldInfoAt id form
+tryFieldTypeAt : Id -> Form -> Maybe FieldType
+tryFieldTypeAt id form =
+    tryFieldInfoAt id form
         |> Maybe.map (\info -> info.fieldType)
 
 
@@ -182,34 +259,34 @@ defined.
 -}
 getFieldLabelAt : Id -> Form -> Maybe String
 getFieldLabelAt id form =
-    getFieldInfoAt id form
+    tryFieldInfoAt id form
         |> Maybe.andThen (\info -> info.label)
 
 
 {-| Get field placeholder for field with the given id, if it exists and
 placeholder is defined.
 -}
-getFieldPlaceholderAt : Id -> Form -> Maybe String
-getFieldPlaceholderAt id form =
-    getFieldInfoAt id form
+tryFieldPlaceholderAt : Id -> Form -> Maybe String
+tryFieldPlaceholderAt id form =
+    tryFieldInfoAt id form
         |> Maybe.andThen (\info -> info.placeholder)
 
 
 {-| Get field default value for field with the given id, if it exists and
 default value is defined.
 -}
-getFieldDefaultAt : Id -> Form -> Maybe FieldData
-getFieldDefaultAt id form =
-    getFieldInfoAt id form
+tryFieldDefaultAt : Id -> Form -> Maybe FieldData
+tryFieldDefaultAt id form =
+    tryFieldInfoAt id form
         |> Maybe.andThen (\info -> info.default)
 
 
 {-| Get field help string for field with the given id, if it exists and the
 help string is defined.
 -}
-getFieldHelpAt : Id -> Form -> Maybe String
-getFieldHelpAt id form =
-    getFieldInfoAt id form
+tryFieldHelpAt : Id -> Form -> Maybe String
+tryFieldHelpAt id form =
+    tryFieldInfoAt id form
         |> Maybe.andThen (\info -> info.help)
 
 
@@ -218,7 +295,7 @@ return an empty list.
 -}
 getFieldValidatorsAt : Id -> Form -> List ( Validator, String )
 getFieldValidatorsAt id form =
-    getFieldInfoAt id form
+    tryFieldInfoAt id form
         |> Maybe.map (\info -> info.validators)
         |> Maybe.withDefault []
 
@@ -227,20 +304,68 @@ getFieldValidatorsAt id form =
 --- DATA ACCESSORS -------------------------------------------------------------
 
 
+{-| Returns the string stored in the field with the given id of a form object.
+
+Invalid data (e.g., non-string values) is silently converted to string or
+coerced to an empty string.
+
+    getStringAt "name" form == "R2D2"
+
+-}
 getStringAt : Id -> Form -> String
 getStringAt id form =
     let
         info =
-            getFieldInfoAt id form
+            tryFieldInfoAt id form
     in
     (Form.getFieldAsString id form.state).value |> withDefault ""
+
+
+{-| Returns the float value stored in the field with the given id of a form
+object.
+
+Invalid data is silently coerced to 0.0.
+
+-}
+getFloatAt : Id -> Form -> Float
+getFloatAt id form =
+    getStringAt id form
+        |> String.toFloat
+        |> Result.withDefault 0
+
+
+{-| Returns the integer value stored in the field with the given id of a form
+object.
+
+Invalid data is silently coerced to 0.
+
+-}
+getIntAt : Id -> Form -> Int
+getIntAt id form =
+    getFloatAt id form
+        |> truncate
+
+
+{-| Returns the boolean value stored in the field with the given id of a form
+object.
+
+Invalid data is silently coerced to False.
+
+-}
+getBoolAt : Id -> Form -> Bool
+getBoolAt id form =
+    let
+        info =
+            tryFieldInfoAt id form
+    in
+    (Form.getFieldAsBool id form.state).value |> withDefault False
 
 
 
 --- TEA FUNCTIONS --------------------------------------------------------------
 
 
-{-| Update form using message
+{-| Update form using message.
 -}
 updateForm : Msg -> Form -> Form
 updateForm msg form =

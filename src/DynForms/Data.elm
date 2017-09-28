@@ -12,10 +12,9 @@ module DynForms.Data
         , asString
         )
 
-{-| Converters for the basic FieldData type
+{-| Converters for the basic FieldData type.
 
-@docs asBool, asFloat, asInt, asMaybeBool, asMaybeFloat, asMaybeInt 
-@docs asMaybeString, asString
+This is a private module.
 
 -}
 

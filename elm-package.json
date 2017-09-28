@@ -1,5 +1,5 @@
 {
-    "version": "0.0.1",
+    "version": "1.0.0",
     "summary": "Dynamic forms in Elm. Load and save forms from/to JSON.",
     "repository": "https://github.com/fabiommendes/elm-dynamic-forms.git",
     "license": "BSD3",
@@ -9,6 +9,8 @@
     "exposed-modules": [
         "DynForms",
         "DynForms.Field",
+        "DynForms.JsonDecode",
+        "DynForms.JsonEncode",
         "DynForms.Layout",
         "DynForms.Validation",
         "DynForms.View"

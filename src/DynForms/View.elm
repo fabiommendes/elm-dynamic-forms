@@ -3,7 +3,7 @@ module DynForms.View
         ( viewForm
         )
 
-{-|
+{-| Functions used to display form elements.
 
 
 # View functions

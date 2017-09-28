@@ -8,7 +8,9 @@ module DynForms.Validation
         , withMsg
         )
 
-{-| Validators are objects that represent an specific validation operation.
+{-| Validators objects represent an specific validation operation. DynForms
+do not support custom validations since that implies putting functions inside
+the model.
 
 
 # Basic validators

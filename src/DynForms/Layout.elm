@@ -1,19 +1,29 @@
 module DynForms.Layout
     exposing
-        ( linearLayout
+        ( forceLinearLayout
+        , forceTableLayout
+        , linearLayout
         , tableLayout
         )
 
 {-| Functions used to define the layout of form elements.
 
 
-# Constructors
+# Layout types
 
 @docs linearLayout, tableLayout
+
+
+# Conversion between different layouts
+
+@docs forceLinearLayout , forceTableLayout
 
 -}
 
 import DynForms exposing (Form, FormLayout(..))
+
+
+--- CONSTRUCTORS ---------------------------------------------------------------
 
 
 {-| Declares a linear layout

@@ -1,6 +1,12 @@
-module DynForms.JsonEncode exposing (encodeString, encodeValue)
+module DynForms.JsonEncode
+    exposing
+        ( encodeFieldInfo
+        , encodeLayout
+        , encodeString
+        , encodeValue
+        )
 
-{-| Functions that encode form or parts of the form to JSON.
+{-| Functions that encode a form or parts of the form to JSON.
 
 The most useful functions are the encodeValue that encodes the complete form
 and encodeValueData that only encodes the current state of form data.
@@ -8,7 +14,11 @@ and encodeValueData that only encodes the current state of form data.
 @docs encodeValue, encodeString
 
 
-# Additional encoders
+# Other partial encoders
+
+Partial encoders do not implement the convenience encode-to-string function.
+
+@docs encodeFieldInfo, encodeLayout
 
 -}
 
@@ -17,19 +27,7 @@ import DynForms exposing (..)
 import DynForms.Data exposing (..)
 import DynForms.State exposing (..)
 import Form
-import Json.Encode as Enc
-    exposing
-        ( Value
-        , array
-        , bool
-        , encode
-        , float
-        , int
-        , list
-        , null
-        , object
-        , string
-        )
+import Json.Encode as Enc exposing (..)
 import Maybe
 
 
@@ -46,33 +44,39 @@ encodeValue form =
     in
     object
         [ ( "action", string form.action )
-        , ( "fields", encodeFields ids fields )
+        , ( "fields", encodeFieldInfoList ids fields )
         , ( "data", encodeData ids fields form.state )
         , ( "layout", encodeLayout form.layout )
         ]
 
 
 {-| Encode a form to a JSON string.
+
+The first parameter is an integer value describing the indentation level. (It
+can be safely set to 0.)
+
 -}
 encodeString : Int -> Form -> String
 encodeString indent form =
     encode indent (encodeValue form)
 
 
-encodeFields : List String -> List FieldInfo -> Value
-encodeFields ids fields =
+encodeFieldInfoList : List String -> List FieldInfo -> Value
+encodeFieldInfoList ids fields =
     let
         encodePair id field =
-            ( id, encodeField field )
+            ( id, encodeFieldInfo field )
     in
     object <| List.map2 encodePair ids fields
 
 
-encodeField : FieldInfo -> Value
-encodeField field =
+{-| Encodes a FieldInfo object to a value
+-}
+encodeFieldInfo : FieldInfo -> Value
+encodeFieldInfo field =
     let
         type_ =
-            [ ( "type", string (typeName field.fieldType) ) ]
+            [ ( "type", string (fieldTypeName field.fieldType) ) ]
 
         label =
             case field.label of
@@ -104,8 +108,8 @@ encodeField field =
     object <| type_ ++ label ++ placeholder ++ help ++ validators
 
 
-typeName : FieldType -> String
-typeName tt =
+fieldTypeName : FieldType -> String
+fieldTypeName tt =
     case tt of
         HiddenField ->
             "hidden"
@@ -161,6 +165,8 @@ encodeDatum id info state =
                 |> Maybe.withDefault null
 
 
+{-| Encodes a Layout object to a value
+-}
 encodeLayout : FormLayout -> Value
 encodeLayout layout =
     case layout of

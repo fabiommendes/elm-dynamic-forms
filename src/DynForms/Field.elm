@@ -1,12 +1,15 @@
 module DynForms.Field
     exposing
-        ( default
+        ( boolField
+        , default
+        , floatField
         , help
         , hiddenField
         , intField
         , label
         , placeholder
         , stringField
+        , textField
         , validators
         )
 
@@ -15,7 +18,7 @@ module DynForms.Field
 
 # Field types
 
-@docs intField, stringField, hiddenField
+@docs stringField, textField, boolField, hiddenField, intField, floatField
 
 
 ## Constructor helpers
@@ -36,7 +39,6 @@ pipeline notation as in
 
 import DynForms exposing (FieldInfo, FieldType(..), Validator)
 import DynForms.Data exposing (FieldData, FieldDataType(..))
-import Form.Field exposing (FieldValue(..))
 
 
 --- FIELD TYPES --------------------------------------------------------------
@@ -59,32 +61,38 @@ defaultFieldInfo =
 --- BASIC FIELD CONSTRUCTORS ---------------------------------------------------
 
 
-{-| String fields represents a simple single line string input.
+{-| String fields represents a simple line of string input.
 -}
 stringField : String -> FieldInfo
 stringField id =
     { defaultFieldInfo
         | id = id
+        , label = Just id
         , fieldType = StringField
     }
 
 
-{-| Text fields are similar to regular string fields, but uses a TextArea as
-input .
+{-| Text fields are similar to regular string fields, but uses a textarea as
+the default input element.
 -}
 textField : String -> FieldInfo
 textField id =
     { defaultFieldInfo
         | id = id
+        , label = Just id
         , fieldType = StringField
     }
 
 
-{-| Hidden field possess a string value that is hidden from the user.
+{-| Hidden fields hold a string value that is hidden from the user.
 -}
 hiddenField : String -> FieldInfo
 hiddenField id =
-    { defaultFieldInfo | id = id, fieldType = HiddenField }
+    { defaultFieldInfo
+        | id = id
+        , label = Just id
+        , fieldType = HiddenField
+    }
 
 
 {-| Int fields hold numeric data as whole numbers.
@@ -93,6 +101,7 @@ intField : String -> FieldInfo
 intField id =
     { defaultFieldInfo
         | id = id
+        , label = Just id
         , fieldType = IntField
         , dataType = IntDataType
     }
@@ -104,6 +113,7 @@ floatField : String -> FieldInfo
 floatField id =
     { defaultFieldInfo
         | id = id
+        , label = Just id
         , fieldType = FloatField
         , dataType = FloatDataType
     }
@@ -116,6 +126,7 @@ boolField : String -> FieldInfo
 boolField id =
     { defaultFieldInfo
         | id = id
+        , label = Just id
         , fieldType = BoolField
         , dataType = BoolDataType
     }

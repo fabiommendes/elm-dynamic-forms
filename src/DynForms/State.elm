@@ -4,11 +4,15 @@ module DynForms.State
         , FormErrors
         , FormState
         , FormValidation
-        , validationFromFields
         , initialState
+        , validationFromFields
         )
 
-{-| How form data is represented internally
+{-| Types and functions in this modules declares how form data is represented
+and accessed internally.
+
+This is a private module.
+
 -}
 
 import DynForms.Data exposing (..)
