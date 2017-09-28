@@ -1,0 +1,27 @@
+{
+  "name": "elm-dynamic-forms",
+  "version": "1.0.0",
+  "description": "Dynamic forms in Elm. Load and save forms from/to JSON.",
+  "main": "index.js",
+  "directories": {
+    "example": "example",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node_modules/elm-test/bin/elm-test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabiommendes/elm-dynamic-forms.git"
+  },
+  "author": "Fábio Macêdo Mendes",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/fabiommendes/elm-dynamic-forms/issues"
+  },
+  "homepage": "https://github.com/fabiommendes/elm-dynamic-forms#readme",
+  "devDependencies": {
+    "elm-format": "^0.6.1-alpha",
+    "elm-test": "0.18.2"
+  }
+}
